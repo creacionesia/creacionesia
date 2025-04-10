@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Juego para Sinel</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            font-family: 'Comic Sans MS', cursive;
+            overflow: hidden;
+            touch-action: none;
+        }
+        h1 {
+            color: #fff;
+            font-size: 36px;
+            text-shadow: 2px 2px 4px #000;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        canvas {
+            border: 3px solid #fff;
+            background: url('https://www.transparenttextures.com/patterns/dark-wood.png');
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            width: 300px;
+            height: 300px;
+        }
+        #controls, #startScreen {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            gap: 15px;
+        }
+        button {
+            width: 70px;
+            height: 70px;
+            font-size: 24px;
+            background: #ffcc00;
+            color: #333;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            touch-action: manipulation;
+            transition: transform 0.2s;
+        }
+        button:active {
+            transform: scale(1.1);
+            background: #ff9900;
+        }
+        #startBtn {
+            grid-column: 2; /* Centrado en la grilla */
+            background: #00cc00;
+            font-size: 20px;
+            width: 100px;
+            height: 100px;
+        }
+        #startBtn:active {
+            background: #009900;
+        }
+        #score {
+            color: #fff;
+            font-size: 24px;
+            text-shadow: 1px 1px 2px #000;
+            margin-top: 15px;
+        }
+        #gameOver {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: #ff4444;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px #fff;
+        }
+        #restartBtn {
+            margin-top: 20px;
+            background: #ff4444;
+            color: #fff;
+            font-size: 20px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            width: auto;
+            height: auto;
+        }
+        #restartBtn:active {
+            background: #cc3333;
+        }
+        #controls { display: none; } /* Ocultar controles al inicio */
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 28px; }
+            button { width: 60px; height: 60px; font-size: 20px; }
+            #startBtn { width: 80px; height: 80px; font-size: 18px; }
+            #score { font-size: 20px; }
+            #gameOver { font-size: 20px; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Juego para Sinel</h1>
+    <canvas id="gameCanvas" width="300" height="300"></canvas>
+    <div id="startScreen">
+        <div></div>
+        <button id="startBtn">Iniciar</button>
+        <div></div>
+    </div>
+    <div id="controls">
+        <div></div>
+        <button id="upBtn">↑</button>
+        <div></div>
+        <button id="leftBtn">←</button>
+        <button id="downBtn">↓</button>
+        <button id="rightBtn">→</button>
+    </div>
+    <div id="score">Puntaje: 0</div>
+    <div id="gameOver">
+        <p>Te dieron por detrás, Sinel</p>
+        <button id="restartBtn">Reiniciar</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+        let snake = [{ x: 7, y: 7 }];
+        let food = { x: 10, y: 10 };
+        let dx = 1;
+        let dy = 0;
+        let score = 0;
+        let gameOver = false;
+        let lastTime = 0;
+        let gameStarted = false;
+        const speed = 150;
+
+        const goatHead = new Image();
+        goatHead.src = 'https://cdn-icons-png.flaticon.com/512/3069/3069171.png';
+
+        // Evento para el botón de inicio
+        document.getElementById('startBtn').addEventListener('touchstart', startGame);
+        document.getElementById('startBtn').addEventListener('click', startGame); // Para PC también
+
+        // Configurar botones de dirección
+        document.getElementById('upBtn').addEventListener('touchstart', () => changeDirection('up'));
+        document.getElementById('downBtn').addEventListener('touchstart', () => changeDirection('down'));
+        document.getElementById('leftBtn').addEventListener('touchstart', () => changeDirection('left'));
+        document.getElementById('rightBtn').addEventListener('touchstart', () => changeDirection('right'));
+        document.getElementById('restartBtn').addEventListener('touchstart', restartGame);
+
+        // Iniciar el juego
+        function startGame() {
+            if (gameStarted) return;
+            gameStarted = true;
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('controls').style.display = 'grid';
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Bucle del juego
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = timestamp - lastTime;
+
+            if (deltaTime >= speed) {
+                update();
+                draw();
+                lastTime = timestamp;
+            }
+
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            } else {
+                document.getElementById('gameOver').style.display = 'block';
+            }
+        }
+
+        // Actualizar lógica
+        function update() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                gameOver = true;
+                return;
+            }
+
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    gameOver = true;
+                    return;
+                }
+            }
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                document.getElementById('score').textContent = `Puntaje: ${score}`;
+                spawnFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        // Dibujar
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    ctx.drawImage(goatHead, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                } else {
+                    ctx.fillStyle = 'green';
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+                }
+            });
+
+            ctx.font = '20px Arial';
+            ctx.fillText('🍆', food.x * gridSize, (food.y + 1) * gridSize);
+        }
+
+        // Generar comida
+        function spawnFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+            for (let segment of snake) {
+                if (food.x === segment.x && food.y === segment.y) {
+                    spawnFood();
+                    return;
+                }
+            }
+        }
+
+        // Cambiar dirección
+        function changeDirection(newDirection) {
+            if (gameOver || !gameStarted) return;
+            switch (newDirection) {
+                case 'up':
+                    if (dy === 0) { dx = 0; dy = -1; }
+                    break;
+                case 'down':
+                    if (dy === 0) { dx = 0; dy = 1; }
+                    break;
+                case 'left':
+                    if (dx === 0) { dx = -1; dy = 0; }
+                    break;
+                case 'right':
+                    if (dx === 0) { dx = 1; dy = 0; }
+                    break;
+            }
+        }
+
+        // Reiniciar
+        function restartGame() {
+            snake = [{ x: 7, y: 7 }];
+            food = { x: 10, y: 10 };
+            dx = 1;
+            dy = 0;
+            score = 0;
+            gameOver = false;
+            gameStarted = true;
+            document.getElementById('score').textContent = `Puntaje: 0`;
+            document.getElementById('gameOver').style.display = 'none';
+            lastTime = 0;
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Dibujar estado inicial
+        draw();
+    </script>
+</body>
+</html>
