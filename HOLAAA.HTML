@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inflación en USA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            text-align: center;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        input {
+            padding: 5px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>¿Qué es la Inflación en Estados Unidos?</h1>
+    </header>
+    <main>
+        <section>
+            <h2>Concepto Básico</h2>
+            <p>La inflación mide el aumento generalizado de los precios de bienes y servicios en una economía con el tiempo. En USA, se mide principalmente con el <strong>Índice de Precios al Consumidor (CPI)</strong>.</p>
+            <button onclick="mostrarInfo()">Más Información</button>
+            <div id="infoExtra" style="display:none;">
+                <p>Por ejemplo, si la inflación es del 3% anual, significa que en promedio los precios suben un 3% cada año.</p>
+            </div>
+        </section>
+        <section>
+            <h2>Datos Recientes</h2>
+            <p>Ingresa un año para ver una estimación ficticia de la inflación:</p>
+            <input type="number" id="anio" placeholder="Ej: 2024" min="2000" max="2025">
+            <button onclick="calcularInflacion()">Calcular</button>
+            <p id="resultado"></p>
+        </section>
+    </main>
+    <script>
+        function mostrarInfo() {
+            const infoExtra = document.getElementById("infoExtra");
+            if (infoExtra.style.display === "none") {
+                infoExtra.style.display = "block";
+            } else {
+                infoExtra.style.display = "none";
+            }
+        }
+
+        function calcularInflacion() {
+            const anio = document.getElementById("anio").value;
+            const resultado = document.getElementById("resultado");
+
+            if (anio >= 2000 && anio <= 2025) {
+                // Simulación simple: inflación ficticia entre 1% y 5%
+                const inflacion = (Math.random() * 4 + 1).toFixed(2);
+                resultado.textContent = `En ${anio}, la inflación estimada en USA fue del ${inflacion}%. (Nota: Esto es un ejemplo ficticio.)`;
+            } else {
+                resultado.textContent = "Por favor, ingresa un año válido entre 2000 y 2025.";
+            }
+        }
+    </script>
+</body>
+</html>
